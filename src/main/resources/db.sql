@@ -25,3 +25,32 @@ WHERE `uid` = 1;
 SELECT *
 FROM user;
 
+# mysql预编译
+prepare statement from 'select * from user where uid = ? and name = ?';
+set @uid = 4,@name = '小星';
+execute statement using @uid,@name;
+
+#查看general_log是否开启
+show variables like 'general_log%';
+#开启general log:
+set global general_log = 1;
+
+#查询日志时区
+show variables like 'log_timestamps';
+#修改日志时区为系统默认的时区，如果想永久修改时区，则在my.ini配置文件中的[mysqld]下增加log_timestamps=SYSTEM
+set global log_timestamps = SYSTEM;
+
+# 查看mysql binlog日志是否开启
+show variables like 'log_bin';
+#查看现在正在记录哪个文件
+show master status;
+#查看bin log日志
+show binlog events in 'XIAORANG-bin.000004';
+
+# 查看mysql数据存储目录
+show global variables like '%datadir%';
+
+# 查看时区，如果需要永久修改时区，则在my.ini配置文件中的[mysqld]下增加default-time_zone = '+8:00'
+show variables like '%time_zone';
+#查看当前时间
+select now();
