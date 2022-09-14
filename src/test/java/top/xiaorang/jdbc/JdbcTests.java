@@ -16,6 +16,13 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
 
+/**
+ * @author liulei
+ * @description JDBC测试类
+ * @github <a href="https://github.com/xihuanxiaorang/jdbc-study">jdbc-study</a>
+ * @Copyright 博客：<a href="https://xiaorang.top">小让的糖果屋</a>  - show me the code
+ * @since 2022/9/14 16:27
+ */
 public class JdbcTests {
     private Connection connection;
 
@@ -269,5 +276,46 @@ public class JdbcTests {
             connection.rollback();
         }
         System.out.println("百万条数据插入用时：" + (System.currentTimeMillis() - start) + "【单位：毫秒】");
+    }
+
+    @Test
+    public void testTransferNonTransaction() {
+        try {
+            String sql1 = "UPDATE `user` SET `salary` = `salary` - ? WHERE `uid` = ?;";
+            PreparedStatement preparedStatement1 = connection.prepareStatement(sql1);
+            preparedStatement1.setFloat(1, 1000.0f);
+            preparedStatement1.setInt(2, 1);
+            preparedStatement1.executeUpdate();
+            int i = 1 / 0;
+            String sql2 = "UPDATE `user` SET `salary` = `salary` + ? WHERE `uid` = ?;";
+            PreparedStatement preparedStatement2 = connection.prepareStatement(sql2);
+            preparedStatement2.setFloat(1, 1000.0f);
+            preparedStatement2.setInt(2, 2);
+            preparedStatement2.executeUpdate();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void testTransferWithTransaction() throws SQLException {
+        connection.setAutoCommit(false);
+        try {
+            String sql1 = "UPDATE `user` SET `salary` = `salary` - ? WHERE `uid` = ?;";
+            PreparedStatement preparedStatement1 = connection.prepareStatement(sql1);
+            preparedStatement1.setFloat(1, 1000.0f);
+            preparedStatement1.setInt(2, 1);
+            preparedStatement1.executeUpdate();
+//            int i = 1 / 0;
+            String sql2 = "UPDATE `user` SET `salary` = `salary` + ? WHERE `uid` = ?;";
+            PreparedStatement preparedStatement2 = connection.prepareStatement(sql2);
+            preparedStatement2.setFloat(1, 1000.0f);
+            preparedStatement2.setInt(2, 2);
+            preparedStatement2.executeUpdate();
+            connection.commit();
+        } catch (Exception e) {
+            e.printStackTrace();
+            connection.rollback();
+        }
     }
 }
