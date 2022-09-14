@@ -22,8 +22,11 @@ DELETE
 FROM `user`
 WHERE `uid` = 1;
 
+# 查询表中全部数据
 SELECT *
 FROM user;
+# 删除表
+drop table `user`;
 
 # mysql预编译
 prepare statement from 'select * from user where uid = ? and name = ?';
@@ -54,3 +57,10 @@ show global variables like '%datadir%';
 show variables like '%time_zone';
 #查看当前时间
 select now();
+
+# 查看数据包消息缓存区初始大小
+show variables like 'net_buffer_length';
+# 查看数据包消息缓存区最大大小
+show variables like 'max_allowed_packet';
+# 重新打开数据库连接参数生效，数据库服务重启后参数恢复为默认，想永久修改的话，则在my.ini配置文件中的[mysqld]下增加max_allowed_packet=32*1024*1024
+set global max_allowed_packet = 32 * 1024 * 1024;

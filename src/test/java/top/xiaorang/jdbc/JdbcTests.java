@@ -7,6 +7,7 @@ import org.junit.Test;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.Date;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -173,5 +174,100 @@ public class JdbcTests {
                     ", note='" + note + '\'' +
                     '}');
         }
+    }
+
+    @Test
+    public void testSupportsBatchUpdates() throws SQLException {
+        DatabaseMetaData databaseMetaData = connection.getMetaData();
+        boolean supportsBatchUpdates = databaseMetaData.supportsBatchUpdates();
+        System.out.println("是否支持批处理？" + supportsBatchUpdates);
+    }
+
+    /**
+     * 用于测试批量处理功能是否正常开启
+     *
+     * @throws SQLException
+     */
+    @Test
+    public void testPreparedStatementBatchAdd() throws SQLException {
+        connection.setAutoCommit(false);
+        try {
+            String sql = "INSERT INTO `user`(`name`, `age`, `birthday`, `salary`, `note`) VALUES(?, ?, ?, ?, ?)";
+            PreparedStatement preparedStatement = connection.prepareStatement(sql);
+            for (int i = 0; i < 5; i++) {
+                preparedStatement.setString(1, "小白" + i);
+                preparedStatement.setInt(2, 18);
+                preparedStatement.setDate(3, new Date(new java.util.Date().getTime()));
+                preparedStatement.setFloat(4, 18000.0f);
+                preparedStatement.setString(5, "销售");
+                preparedStatement.addBatch();
+            }
+            preparedStatement.executeBatch();
+            connection.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            connection.rollback();
+        }
+    }
+
+    /**
+     * 当max_allowed_packet=200*1024，即200K的时候，会出现com.mysql.cj.jdbc.exceptions.PacketTooBigException异常
+     *
+     * @throws SQLException
+     */
+    @Test
+    public void testPreparedStatementBatchAdd2() throws SQLException {
+        connection.setAutoCommit(false);
+        try {
+            String sql = "INSERT INTO `user`(`name`, `age`, `birthday`, `salary`, `note`) VALUES(?, ?, ?, ?, ?)";
+            PreparedStatement preparedStatement = connection.prepareStatement(sql);
+            for (int i = 0; i < 1000000; i++) {
+                preparedStatement.setString(1, "小白" + i);
+                preparedStatement.setInt(2, 18);
+                preparedStatement.setDate(3, new Date(new java.util.Date().getTime()));
+                preparedStatement.setFloat(4, 18000.0f);
+                preparedStatement.setString(5, "销售");
+                preparedStatement.addBatch();
+            }
+            preparedStatement.executeBatch();
+            connection.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            connection.rollback();
+        }
+    }
+
+    /**
+     * 优化后的批处理代码
+     *
+     * @throws SQLException
+     */
+    @Test
+    public void testPreparedStatementBatchAdd3() throws SQLException {
+        long start = System.currentTimeMillis();
+        connection.setAutoCommit(false);
+        try {
+            String sql = "INSERT INTO `user`(`name`, `age`, `birthday`, `salary`, `note`) VALUES(?, ?, ?, ?, ?)";
+            PreparedStatement preparedStatement = connection.prepareStatement(sql);
+            for (int i = 1; i <= 1000000; i++) {
+                preparedStatement.setString(1, "小白" + i);
+                preparedStatement.setInt(2, 18);
+                preparedStatement.setDate(3, new Date(new java.util.Date().getTime()));
+                preparedStatement.setFloat(4, 18000.0f);
+                preparedStatement.setString(5, "销售");
+                preparedStatement.addBatch();
+                if (i % 500 == 0) {
+                    preparedStatement.executeBatch();
+                    preparedStatement.clearBatch();
+                }
+            }
+            preparedStatement.executeBatch();
+            preparedStatement.clearBatch();
+            connection.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            connection.rollback();
+        }
+        System.out.println("百万条数据插入用时：" + (System.currentTimeMillis() - start) + "【单位：毫秒】");
     }
 }
